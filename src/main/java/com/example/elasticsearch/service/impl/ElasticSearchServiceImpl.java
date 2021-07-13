@@ -1,6 +1,7 @@
 package com.example.elasticsearch.service.impl;
 
 import com.example.elasticsearch.service.ElasticSearchService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHost;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchStatusException;
@@ -14,6 +15,8 @@ import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.core.GetSourceRequest;
+import org.elasticsearch.client.core.GetSourceResponse;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -22,6 +25,7 @@ import java.util.Date;
 import java.util.Map;
 
 @Service
+@Slf4j
 public class ElasticSearchServiceImpl implements ElasticSearchService {
 
     private RestHighLevelClient client;
@@ -117,5 +121,25 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
         };
 
         client.getAsync(getRequest,RequestOptions.DEFAULT,listener);
+    }
+
+    @Override
+    public void getSourceRequest(String indexName, String document) {
+        GetSourceRequest getSourceRequest = new GetSourceRequest(indexName,document);
+        ActionListener<GetSourceResponse> listener =
+                new ActionListener<GetSourceResponse>() {
+                    @Override
+                    public void onResponse(GetSourceResponse getResponse) {
+
+                        Map<String, Object> source = getResponse.getSource();
+                        log.info("source:{}",source);
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("cause exception:",e.fillInStackTrace());
+                    }
+                };
+        client.getSourceAsync(getSourceRequest, RequestOptions.DEFAULT, listener);
     }
 }

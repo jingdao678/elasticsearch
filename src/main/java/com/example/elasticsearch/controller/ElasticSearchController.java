@@ -29,4 +29,10 @@ public class ElasticSearchController {
         elasticSearchService.getIndexDocumentAsync(indexName,document);
         return "get index async success.......";
     }
+
+    @RequestMapping("/index/getSource")
+    public String getSourceRequest(String indexName, String document){
+        elasticSearchService.getSourceRequest(indexName,document);
+        return "get source success.........";
+    }
 }
