@@ -16,4 +16,17 @@ public class ElasticSearchController {
         elasticSearchService.indexDocument(indexName,document);
         return "success......";
     }
+
+
+    @RequestMapping("/index/get")
+    public String getIndexDocument(String indexName, String document){
+        elasticSearchService.getIndexDocument(indexName,document);
+        return "get index success.......";
+    }
+
+    @RequestMapping("/index/getAsync")
+    public String getIndexDocumentAsync(String indexName, String document){
+        elasticSearchService.getIndexDocumentAsync(indexName,document);
+        return "get index async success.......";
+    }
 }

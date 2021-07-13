@@ -2,6 +2,12 @@ package com.example.elasticsearch.service.impl;
 
 import com.example.elasticsearch.service.ElasticSearchService;
 import org.apache.http.HttpHost;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.ElasticsearchStatusException;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
@@ -13,6 +19,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.Date;
+import java.util.Map;
 
 @Service
 public class ElasticSearchServiceImpl implements ElasticSearchService {
@@ -59,5 +66,56 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
             e.printStackTrace();
         }
      ///   closeEs();
+    }
+
+    @Override
+    public void getIndexDocument(String indexName, String document){
+        GetRequest getRequest = new GetRequest(indexName,document);
+        GetResponse getResponse = null;
+        try {
+            getResponse = client.get(getRequest, RequestOptions.DEFAULT);
+        } catch (IOException  | ElasticsearchStatusException e) {
+           e.printStackTrace();
+        }
+        String index = getResponse.getIndex();
+        String id = getResponse.getId();
+        if (getResponse.isExists()) {
+            long version = getResponse.getVersion();
+            String sourceAsString = getResponse.getSourceAsString();
+            Map<String, Object> sourceAsMap = getResponse.getSourceAsMap();
+            byte[] sourceAsBytes = getResponse.getSourceAsBytes();
+            System.err.println("getindex........");
+        } else {
+            System.err.println("document not exists!!!");
+        }
+    }
+
+    @Override
+    public void getIndexDocumentAsync(String indexName, String document) {
+        GetRequest getRequest = new GetRequest(indexName,document);
+        ActionListener<GetResponse> listener = new ActionListener<GetResponse>() {
+            @Override
+            public void onResponse(GetResponse getResponse) {
+                String index = getResponse.getIndex();
+                String id = getResponse.getId();
+                if (getResponse.isExists()) {
+                    long version = getResponse.getVersion();
+                    String sourceAsString = getResponse.getSourceAsString();
+                    Map<String, Object> sourceAsMap = getResponse.getSourceAsMap();
+                    byte[] sourceAsBytes = getResponse.getSourceAsBytes();
+                    System.err.println("getindex........");
+                } else {
+                    System.err.println("document not exists!!!");
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                    System.err.println("exception .............");
+                    e.printStackTrace();
+            }
+        };
+
+        client.getAsync(getRequest,RequestOptions.DEFAULT,listener);
     }
 }
