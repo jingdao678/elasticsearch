@@ -35,4 +35,16 @@ public class ElasticSearchController {
         elasticSearchService.getSourceRequest(indexName,document);
         return "get source success.........";
     }
+
+    @RequestMapping("/index/update_document_async")
+    public String updateDocumentAsync(String indexName, String document){
+        elasticSearchService.updateDocumentAsync(indexName,document);
+        return "update document async success.....";
+    }
+
+    @RequestMapping("/index/BulkRequest")
+    public String BulkRequest(){
+        elasticSearchService.BulkRequest();
+        return "BulkRequest success.....";
+    }
 }

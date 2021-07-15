@@ -10,4 +10,6 @@ public interface ElasticSearchService {
     void getIndexDocument(String indexName,String document);
     void getIndexDocumentAsync(String indexName,String document);
     void getSourceRequest(String indexName,String document);
+    void updateDocumentAsync(String indexName,String document);
+    void BulkRequest();
 }

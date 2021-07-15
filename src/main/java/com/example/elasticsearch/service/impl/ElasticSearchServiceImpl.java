@@ -7,21 +7,31 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.DocWriteResponse;
+import org.elasticsearch.action.bulk.BulkItemResponse;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
+import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.core.GetSourceRequest;
 import org.elasticsearch.client.core.GetSourceResponse;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.get.GetResult;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -141,5 +151,101 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
                     }
                 };
         client.getSourceAsync(getSourceRequest, RequestOptions.DEFAULT, listener);
+    }
+
+    @Override
+    public void updateDocumentAsync(String indexName, String document) {
+     //   UpdateRequest request = new UpdateRequest(indexName,document);
+        Map<String, Object> jsonMap = new HashMap<>();
+        jsonMap.put("updated", new Date());
+        jsonMap.put("reason", "daily update"+System.currentTimeMillis());
+        jsonMap.put("updateupdate","water=========");
+        jsonMap.put("update222","water22222");
+        UpdateRequest request = new UpdateRequest(indexName,document)
+                .doc(jsonMap);
+        request.fetchSource(true);
+       ActionListener<UpdateResponse> listener = new ActionListener<UpdateResponse>() {
+            @Override
+            public void onResponse(UpdateResponse updateResponse) {
+                String index = updateResponse.getIndex();
+                String id = updateResponse.getId();
+                long version = updateResponse.getVersion();
+                if (updateResponse.getResult() == DocWriteResponse.Result.CREATED) {
+                                log.info("update result:"+updateResponse.getResult());
+                } else if (updateResponse.getResult() == DocWriteResponse.Result.UPDATED) {
+                    log.info("update result:"+updateResponse.getResult());
+
+                } else if (updateResponse.getResult() == DocWriteResponse.Result.DELETED) {
+                    log.info("update result:"+updateResponse.getResult());
+
+                } else if (updateResponse.getResult() == DocWriteResponse.Result.NOOP) {
+                    log.info("update result:"+updateResponse.getResult());
+
+                }
+
+                GetResult result = updateResponse.getGetResult();
+                if (result.isExists()) {
+                    String sourceAsString = result.sourceAsString();
+                    Map<String, Object> sourceAsMap = result.sourceAsMap();
+                    byte[] sourceAsBytes = result.source();
+                    log.info("sourceAsString:{}",sourceAsString);
+                } else {
+
+                }
+
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                log.error("update fail:",e.fillInStackTrace());
+            }
+        };
+        client.updateAsync(request, RequestOptions.DEFAULT, listener);
+    }
+
+    @Override
+    public void BulkRequest() {
+        BulkRequest request = new BulkRequest();
+        request.add(new IndexRequest("posts").id("1")
+                .source(XContentType.JSON,"field", "foo"));
+        request.add(new IndexRequest("posts").id("2")
+                .source(XContentType.JSON,"field", "bar"));
+        request.add(new IndexRequest("posts").id("3")
+                .source(XContentType.JSON,"field", "baz"));
+        ActionListener<BulkResponse> listener = new ActionListener<BulkResponse>() {
+            @Override
+            public void onResponse(BulkResponse bulkResponse) {
+
+                for (BulkItemResponse bulkItemResponse : bulkResponse) {
+
+                    if (bulkItemResponse.isFailed()) {
+                        BulkItemResponse.Failure failure =
+                                bulkItemResponse.getFailure();
+                    }
+
+
+                    DocWriteResponse itemResponse = bulkItemResponse.getResponse();
+
+                    switch (bulkItemResponse.getOpType()) {
+                        case INDEX:
+                        case CREATE:
+                            IndexResponse indexResponse = (IndexResponse) itemResponse;
+                            break;
+                        case UPDATE:
+                            UpdateResponse updateResponse = (UpdateResponse) itemResponse;
+                            break;
+                        case DELETE:
+                            DeleteResponse deleteResponse = (DeleteResponse) itemResponse;
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+
+            }
+        };
+
+        client.bulkAsync(request, RequestOptions.DEFAULT, listener);
     }
 }
