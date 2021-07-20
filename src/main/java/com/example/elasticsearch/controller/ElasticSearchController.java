@@ -47,4 +47,11 @@ public class ElasticSearchController {
         elasticSearchService.BulkRequest();
         return "BulkRequest success.....";
     }
+
+    @RequestMapping("/index/search_api")
+    public String searchApi(){
+        elasticSearchService.searchApi();
+        return "search api success ........";
+
+    }
 }

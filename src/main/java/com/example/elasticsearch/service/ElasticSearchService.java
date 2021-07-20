@@ -12,4 +12,5 @@ public interface ElasticSearchService {
     void getSourceRequest(String indexName,String document);
     void updateDocumentAsync(String indexName,String document);
     void BulkRequest();
+    void searchApi();
 }

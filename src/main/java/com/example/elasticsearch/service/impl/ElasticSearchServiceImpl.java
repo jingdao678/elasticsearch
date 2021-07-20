@@ -3,6 +3,7 @@ package com.example.elasticsearch.service.impl;
 import com.example.elasticsearch.service.ElasticSearchService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHost;
+import org.apache.lucene.search.TotalHits;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.ActionListener;
@@ -16,6 +17,9 @@ import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.ShardSearchFailure;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -24,14 +28,24 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.core.GetSourceRequest;
 import org.elasticsearch.client.core.GetSourceResponse;
+import org.elasticsearch.common.text.Text;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.get.GetResult;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -247,5 +261,89 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
         };
 
         client.bulkAsync(request, RequestOptions.DEFAULT, listener);
+    }
+
+    @Override
+    public void searchApi() {
+        SearchRequest searchRequest = new SearchRequest("cuihq11");
+       /// searchRequest.ty
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+       // searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+        searchSourceBuilder.query(QueryBuilders.matchQuery("message","elasticsearch3333"));
+
+
+        HighlightBuilder highlightBuilder = new HighlightBuilder();
+        highlightBuilder.preTags("<strong>");
+        highlightBuilder.postTags("</strong>");
+      /*  HighlightBuilder.Field highlightTitle =
+                new HighlightBuilder.Field("message");
+        highlightTitle.highlighterType("unified");*/
+        highlightBuilder.field("message");
+       /* HighlightBuilder.Field highlightUser = new HighlightBuilder.Field("user");
+        highlightBuilder.field(highlightUser);*/
+        searchSourceBuilder.highlighter(highlightBuilder);
+        searchRequest.source(searchSourceBuilder);
+
+        ActionListener<SearchResponse> listener = new ActionListener<SearchResponse>() {
+            @Override
+            public void onResponse(SearchResponse searchResponse) {
+                RestStatus status = searchResponse.status();
+                TimeValue took = searchResponse.getTook();
+                Boolean terminatedEarly = searchResponse.isTerminatedEarly();
+                boolean timedOut = searchResponse.isTimedOut();
+
+                int totalShards = searchResponse.getTotalShards();
+                int successfulShards = searchResponse.getSuccessfulShards();
+                int failedShards = searchResponse.getFailedShards();
+                for (ShardSearchFailure failure : searchResponse.getShardFailures()) {
+                    // failures should be handled here
+                    log.error("failure:{}",failure);
+                }
+                SearchHits hits = searchResponse.getHits();
+
+                TotalHits totalHits = hits.getTotalHits();
+// the total number of hits, must be interpreted in the context of totalHits.relation
+                long numHits = totalHits.value;
+// whether the number of hits is accurate (EQUAL_TO) or a lower bound of the total (GREATER_THAN_OR_EQUAL_TO)
+                TotalHits.Relation relation = totalHits.relation;
+                float maxScore = hits.getMaxScore();
+
+                SearchHit[] searchHits = hits.getHits();
+                for (SearchHit hit : searchHits) {
+                    // do something with the SearchHit
+                    String index = hit.getIndex();
+                    String id = hit.getId();
+                    float score = hit.getScore();
+
+                /*    String sourceAsString = hit.getSourceAsString();
+                    Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+                    String documentTitle = (String) sourceAsMap.get("message");
+                    try {
+                        List<Object> users = (List<Object>) sourceAsMap.get("user");
+                        log.info("users :{}",users);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    Map<String, Object> innerObject =
+                            (Map<String, Object>) sourceAsMap.get("innerObject");
+                    log.info("sourceAsString:{}",sourceAsString);*/
+
+                    Map<String, HighlightField> highlightFields = hit.getHighlightFields();
+                    HighlightField highlight = highlightFields.get("message");
+                    Text[] fragments = highlight.fragments();
+                    String fragmentString = fragments[0].string();
+                    log.info("message::{}",highlight);
+                }
+
+
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+
+            }
+        };
+
+        client.searchAsync(searchRequest, RequestOptions.DEFAULT, listener);
     }
 }
